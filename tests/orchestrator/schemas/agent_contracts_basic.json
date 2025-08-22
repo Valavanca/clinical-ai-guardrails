@@ -1,0 +1,148 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Clinical AI Agent Output Contracts",
+  "description": "Standardized output schemas for all clinical AI validation agents",
+  
+  "definitions": {
+    "ChecklistItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[A-Z][0-9]+\\.[0-9]+$",
+          "description": "Unique identifier (e.g., G1.1, S2.3)"
+        },
+        "description": {
+          "type": "string",
+          "description": "What needs to be checked"
+        },
+        "source_quote": {
+          "type": "string",
+          "description": "Exact quote from guideline"
+        },
+        "required_artifacts": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "File patterns needed for validation"
+        },
+        "validation_method": {
+          "type": "string",
+          "description": "How to validate this item"
+        },
+        "pass_criteria": {
+          "type": "string",
+          "description": "What constitutes passing this check"
+        },
+        "severity": {
+          "type": "string",
+          "enum": ["BLOCKER", "WARNING", "INFO"],
+          "description": "Impact level if check fails"
+        }
+      },
+      "required": ["id", "description", "validation_method", "pass_criteria", "severity"]
+    },
+    
+    "ValidationResult": {
+      "type": "object",
+      "properties": {
+        "check_id": {
+          "type": "string",
+          "description": "References ChecklistItem.id"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["PASS", "FAIL", "SKIP", "ERROR"]
+        },
+        "message": {
+          "type": "string",
+          "description": "Human-readable result description"
+        },
+        "evidence": {
+          "type": "object",
+          "description": "Supporting data/metrics"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Agent confidence in result"
+        }
+      },
+      "required": ["check_id", "status", "message"]
+    },
+    
+    "StatisticalResult": {
+      "type": "object",
+      "properties": {
+        "metric_name": {
+          "type": "string",
+          "description": "Name of computed metric"
+        },
+        "value": {
+          "type": "number",
+          "description": "Point estimate"
+        },
+        "confidence_interval": {
+          "type": "object",
+          "properties": {
+            "lower": {"type": "number"},
+            "upper": {"type": "number"},
+            "level": {"type": "number", "description": "Confidence level (e.g., 0.95)"}
+          },
+          "required": ["lower", "upper", "level"]
+        },
+        "method": {
+          "type": "string",
+          "description": "Statistical method used"
+        },
+        "sample_size": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": ["metric_name", "value", "method"]
+    }
+  },
+  
+  "agent_outputs": {
+    "guideline_agent": {
+      "type": "object",
+      "properties": {
+        "checklist": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/ChecklistItem"}
+        },
+        "coverage_summary": {
+          "type": "object",
+          "properties": {
+            "total_checks": {"type": "integer"},
+            "by_severity": {
+              "type": "object",
+              "properties": {
+                "BLOCKER": {"type": "integer"},
+                "WARNING": {"type": "integer"},
+                "INFO": {"type": "integer"}
+              }
+            }
+          }
+        }
+      },
+      "required": ["checklist"]
+    },
+    
+    "statistical_agent": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/StatisticalResult"}
+        },
+        "validation_results": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/ValidationResult"}
+        }
+      },
+      "required": ["results", "validation_results"]
+    }   
+  }
+}
